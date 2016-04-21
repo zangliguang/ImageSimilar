@@ -1,0 +1,16 @@
+gen/
+bin/
+.classpath
+.project
+local.properties
+.settings/
+.iml
+.idea/
+
+.gradle
+YhdsOversea.iml
+/.idea
+.DS_Store
+/build
+/submodules
+
