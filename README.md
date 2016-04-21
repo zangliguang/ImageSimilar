@@ -12,3 +12,7 @@ Hamming distance
 第五步，计算哈希值。将上一步的比较结果，组合在一起，就构成了一个64位的整数，这就是这张图片的指纹。得到指纹以后，就可以对比不同的图片，看看64位中有多少位是不一样的。
 
 第六部，计算Hamming distance。如果不相同的数据位不超过5，就说明两张图片很相似；如果大于10，就说明这是两张不同的图片。
+
+![github](https://raw.githubusercontent.com/zangliguang/ImageSimilar/master/screenshort/S60421-151234_meitu_1.jpg "github")；
+![github](https://raw.githubusercontent.com/zangliguang/ImageSimilar/master/screenshort/S60421-151321_meitu_2.jpg "github")；
+
