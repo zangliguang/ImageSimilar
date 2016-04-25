@@ -2,7 +2,6 @@ package adapter;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +11,6 @@ import com.tonicartos.superslim.GridSLM;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import tool.LocalImage;
 
@@ -32,15 +30,15 @@ public class SimilarPictureAdapter extends RecyclerView.Adapter<CountryViewHolde
     private int mHeaderDisplay;
 
     private boolean mMarginsFixed;
+    private boolean mTextVisible;
 
     private final Context mContext;
-    List<Set<LocalImage>> similarItems;
+    List<List<LocalImage>> similarItems;
 
-    public SimilarPictureAdapter(Context context, int headerMode, List<Set<LocalImage>> similarItem) {
+    public SimilarPictureAdapter(Context context, int headerMode, List<List<LocalImage>> similarItem) {
         mContext = context;
-        this.similarItems=similarItem;
+        this.similarItems = similarItem;
 
-        final String[] countryNames = context.getResources().getStringArray(R.array.country_names);
         mHeaderDisplay = headerMode;
 
         mItems = new ArrayList<>();
@@ -54,12 +52,13 @@ public class SimilarPictureAdapter extends RecyclerView.Adapter<CountryViewHolde
 
         for (int i = 0; i < similarItems.size(); i++) {
             String header = String.valueOf(i);
-            mItems.add(new LineItem(header, true, sectionManager, headerCount+sectionFirstPosition));
-            Log.i("zang", "第" + i + "个" + "header=" + sectionFirstPosition + "sonsize=" + similarItems.get(i).size());
+            mItems.add(new LineItem(header, true, sectionManager, headerCount + sectionFirstPosition));
             for (LocalImage lg : similarItems.get(i)) {
-                mItems.add(new LineItem(lg.getFilePath(), false, sectionManager, headerCount+sectionFirstPosition));
+                LineItem lineItem = new LineItem(lg.getFilePath(), false, sectionManager, headerCount + sectionFirstPosition);
+                lineItem.otherInfo = lg.getAvgPixel() + "\n" + lg.getSourceHashCode();
+                mItems.add(lineItem);
             }
-            headerCount ++;
+            headerCount++;
             sectionFirstPosition = sectionFirstPosition + similarItems.get(i).size();
         }
     }
@@ -82,7 +81,7 @@ public class SimilarPictureAdapter extends RecyclerView.Adapter<CountryViewHolde
             view = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.text_line_item, parent, false);
         }
-        return new CountryViewHolder(view,parent.getContext());
+        return new CountryViewHolder(view, parent.getContext());
     }
 
     @Override
@@ -90,7 +89,10 @@ public class SimilarPictureAdapter extends RecyclerView.Adapter<CountryViewHolde
         final LineItem item = mItems.get(position);
         final View itemView = holder.itemView;
 
-        holder.bindItem(item.text,item.isHeader);
+        holder.bindItem(item.text, item.isHeader, item.otherInfo);
+        if (!item.isHeader) {
+            holder.setTextVisible(mTextVisible);
+        }
 
         final GridSLM.LayoutParams lp = GridSLM.LayoutParams.from(itemView.getLayoutParams());
         // Overrides xml attrs, could use different layouts too.
@@ -151,12 +153,24 @@ public class SimilarPictureAdapter extends RecyclerView.Adapter<CountryViewHolde
 
         public String text;
 
+        public String otherInfo;
+
+
         public LineItem(String text, boolean isHeader, int sectionManager,
-                int sectionFirstPosition) {
+                        int sectionFirstPosition) {
             this.isHeader = isHeader;
             this.text = text;
             this.sectionManager = sectionManager;
             this.sectionFirstPosition = sectionFirstPosition;
         }
+    }
+
+    public boolean ismTextVisible() {
+        return mTextVisible;
+    }
+
+    public void setmTextVisible(boolean mTextVisible) {
+        this.mTextVisible = mTextVisible;
+        notifyDataSetChanged();
     }
 }

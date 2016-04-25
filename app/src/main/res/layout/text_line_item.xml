@@ -19,6 +19,5 @@
         android:layout_height="wrap_content"
         android:textColor="#222222"
         android:textSize="16sp"
-        android:visibility="gone"
         tools:text="Text Line Item" />
 </LinearLayout>

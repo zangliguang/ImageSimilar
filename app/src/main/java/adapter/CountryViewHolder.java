@@ -27,16 +27,27 @@ class CountryViewHolder extends RecyclerView.ViewHolder {
         mImageView = (ImageView) view.findViewById(R.id.image);
     }
 
-    public void bindItem(String text, boolean isheader) {
-        mTextView.setText(text);
+    public void bindItem(String text, boolean isheader, String otherInfo) {
         if (!isheader) {
+            mTextView.setText(otherInfo+"\n"+text);
             Glide.with(context).load(new File(text)).fitCenter()
                     .into(mImageView);
+        }else{
+            mTextView.setText(text);
         }
     }
 
     @Override
     public String toString() {
         return mTextView.getText().toString();
+    }
+
+    public void setTextVisible(boolean textVisible) {
+        if(textVisible){
+            mTextView.setVisibility(View.VISIBLE);
+        }else{
+            mTextView.setVisibility(View.GONE);
+        }
+
     }
 }

@@ -14,7 +14,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
@@ -30,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 import adapter.SimilarPictureAdapter;
 import tool.ImageHelper;
@@ -38,15 +36,15 @@ import tool.LocalImage;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG ="SIMILAR_IMAGE";
-    private static final int PROGRESS_END =0;
-    private static final int PROGRESS_START =1;
-    private static final int PROGRESS_PROGRESS =2;
+    private static final String TAG = "SIMILAR_IMAGE";
+    private static final int PROGRESS_END = 0;
+    private static final int PROGRESS_START = 1;
+    private static final int PROGRESS_PROGRESS = 2;
     RecyclerView mRecyclerView;
     LinearLayout mParentPanel;
     ProgressBar mPb;
     TextView mImageProgress;
-    List<Set<LocalImage>> similarItems =new ArrayList<>();
+    List<List<LocalImage>> similarItems = new ArrayList<>();
 
     private ViewHolder mViews;
 
@@ -59,30 +57,31 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_WIDTH = 1024;//最大宽
     private static final int MAX_HEIGHT = 1280;//最大高
 
-    Handler mHandler=new Handler(){
-         @Override
-         public void handleMessage(Message msg) {
-             switch (msg.what){
-                 case PROGRESS_END:
-                     mPb.setVisibility(View.GONE);
-                     mImageProgress.setVisibility(View.GONE);
-                     mAdapter = new SimilarPictureAdapter(MainActivity.this.getApplicationContext(), 18,similarItems);
-                     mAdapter.setMarginsFixed(true);
-                     mAdapter.setHeaderDisplay(18);
-                     mViews.setAdapter(mAdapter);
-                 case PROGRESS_START:
-                     mPb.setMax(msg.arg1);
-                 case PROGRESS_PROGRESS:
-                     mPb.setProgress(msg.arg1);
-                     mImageProgress.setText("解析图片"+msg.arg1+"/"+mPb.getMax());
+    Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case PROGRESS_END:
+                    mPb.setVisibility(View.GONE);
+                    mImageProgress.setVisibility(View.GONE);
+                    mAdapter = new SimilarPictureAdapter(MainActivity.this.getApplicationContext(), 18, similarItems);
+                    mAdapter.setMarginsFixed(true);
+                    mAdapter.setHeaderDisplay(18);
+                    mViews.setAdapter(mAdapter);
+                case PROGRESS_START:
+                    mPb.setMax(msg.arg1);
+                case PROGRESS_PROGRESS:
+                    mPb.setProgress(msg.arg1);
+                    mImageProgress.setText("解析图片" + msg.arg1 + "/" + mPb.getMax());
 
 
-             }
+            }
 
 
-             super.handleMessage(msg);
-         }
-     };
+            super.handleMessage(msg);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 getPath();
                 Message msg = mHandler.obtainMessage();//同 new Message();
-                msg.what=PROGRESS_END;
+                msg.what = PROGRESS_END;
                 mHandler.sendMessage(msg);
             }
         }).start();
@@ -125,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+                mAdapter.setmTextVisible(!mAdapter.ismTextVisible());
             return true;
         }
 
@@ -133,38 +133,40 @@ public class MainActivity extends AppCompatActivity {
 
     @TargetApi(Build.VERSION_CODES.M)
     private void getPath() {
-        List<LocalImage>imageList=new ArrayList<>();
+        List<LocalImage> imageList = new ArrayList<>();
         Uri uri = MediaStore.Images.Media.getContentUri("external");
         Cursor c = getContentResolver().query(uri, null, null, null, null);
         if (c == null) {
             Log.e(TAG, "fail to query uri:" + uri);
         }
         c.moveToFirst();
-        int count=c.getCount();
+        int count = c.getCount();
         Message msg = mHandler.obtainMessage();//同 new Message();
         msg.arg1 = count;
-        msg.what=PROGRESS_START;
+        msg.what = PROGRESS_START;
         mHandler.sendMessage(msg);
-        int analyze_num=0;
+        int analyze_num = 0;
 
         DisplayMetrics outMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(outMetrics);
 
         while (c.moveToNext()) {
             String path = c.getString(c.getColumnIndex(MediaStore.MediaColumns.DATA));
+            Log.i(TAG, "路径:" + path);
             long size = c.getLong(c.getColumnIndex(MediaStore.MediaColumns.SIZE));
             int ringtoneID = c.getInt(c
                     .getColumnIndex(MediaStore.MediaColumns._ID));
             try {
-                Bitmap bitmap=loadBitmapFromFile(path, outMetrics.widthPixels,
+                Bitmap bitmap = loadBitmapFromFile(path, outMetrics.widthPixels,
                         outMetrics.heightPixels);
 //                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri
 //                        .parse(uri.toString() +"/"+ ringtoneID));
-                if (null!=bitmap){
-                    imageList.add(new LocalImage(ImageHelper.produceFingerPrint(bitmap), path,size,(uri.toString() +"/"+ ringtoneID)));
+                if (null != bitmap) {
+//                    imageList.add(new LocalImage(ImageHelper.produceFingerPrint(bitmap), path,size,(uri.toString() +"/"+ ringtoneID)));
+                    imageList.add(ImageHelper.CreateLocalImage(bitmap, path, size, (uri.toString() + "/" + ringtoneID)));
                 }
 
-                if(bitmap != null && !bitmap.isRecycled()){
+                if (bitmap != null && !bitmap.isRecycled()) {
 
                     // 回收并且置为null
 
@@ -174,8 +176,8 @@ public class MainActivity extends AppCompatActivity {
                     System.gc();
                 }
                 analyze_num++;
-                Log.e(TAG, "加载图片" + path+"  大小:"+size);
-                int  progress = (int) ((double) analyze_num / count) * 100;
+                Log.v(TAG, "加载图片" + path + "  大小:" + size);
+                int progress = (int) ((double) analyze_num / count) * 100;
                 mPb.setProgress(progress);
                 Message msg2 = mHandler.obtainMessage();//同 new Message();
                 msg2.arg1 = analyze_num;
@@ -186,8 +188,6 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-
-
         Collections.sort(imageList, new Comparator<LocalImage>() {
 
             @Override
@@ -195,31 +195,55 @@ public class MainActivity extends AppCompatActivity {
                 return localImage1.getSourceHashCode().compareTo(localImage2.getSourceHashCode());
             }
         });
-        Set<LocalImage> similarItem =new ArraySet<>();
-        int index =0;
-        for(int i=0;i<imageList.size()-1;i++){
-            LocalImage first = imageList.get(i);
-            LocalImage second = imageList.get(i + 1);
-            similarItem.add(first);
-            if(ImageHelper.hammingDistance(imageList.get(i - similarItem.size()+1).getSourceHashCode(), second.getSourceHashCode())<=5){
-                similarItem.add(second);
-                if(i==imageList.size()-2){
-                    similarItems.add(similarItem);
 
-                    Log.e(TAG, "相似结束" + similarItem.size());
+
+//        Collections.sort(imageList, new Comparator<LocalImage>() {
+//
+//            @Override
+//            public int compare(LocalImage localImage1, LocalImage localImage2) {
+//                return localImage1.getAvgPixel() - (localImage2.getAvgPixel());
+//            }
+//        });
+
+
+        int index1 = 0;
+        int index2 = 1;
+        List<LocalImage> similarItem = new ArrayList<>();
+        while (index2 < imageList.size()) {
+            LocalImage first = imageList.get(index1);
+            LocalImage second = imageList.get(index2);
+            if (similarCondition(first, second)) {
+                if (similarItem.indexOf(first) < 0) {
+                    similarItem.add(first);
                 }
-            }else {
-                if (similarItem.size() > 1) {
+                if (similarItem.indexOf(second) < 0) {
+                    similarItem.add(second);
+                }
+            } else {
+                if(similarItem.size()>1){
                     similarItems.add(similarItem);
-                    Log.e(TAG, "相似结束" + similarItem.size());
                 }
-                similarItem=new ArraySet<>();
+                similarItem=new ArrayList<>();
             }
+
+
+            index1++;
+            index2++;
 
         }
 
+
+
+
     }
 
+    private boolean similarCondition(LocalImage first, LocalImage second) {
+        int hammingDistance = ImageHelper.hammingDistance(first.getSourceHashCode(), second.getSourceHashCode());
+        double avgPixsProportion=((double)first.getAvgPixel())/second.getAvgPixel();
+        boolean avgPixCondition = avgPixsProportion < 1.2 && avgPixsProportion > 0.8;
+//        avgPixCondition=true;
+        return hammingDistance <= 5&& avgPixCondition;
+    }
 
 
     private static class ViewHolder {
@@ -246,8 +270,8 @@ public class MainActivity extends AppCompatActivity {
         public void smoothScrollToPosition(int position) {
             mRecyclerHolderView.smoothScrollToPosition(position);
         }
-    }
 
+    }
 
 
     private Bitmap loadBitmapFromFile(String path, int screenWidth, int screenHeight) {

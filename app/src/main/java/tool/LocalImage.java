@@ -8,12 +8,17 @@ public class LocalImage {
     String filePath;
     long fileSize;
     String uri;
+    int avgPixel;
 
     public LocalImage(String sourceHashCode, String filePath, long fileSize,String uri) {
         this.sourceHashCode = sourceHashCode;
         this.filePath = filePath;
         this.fileSize = fileSize;
         this.uri=uri;
+    }
+
+    public LocalImage() {
+
     }
 
     @Override
@@ -56,5 +61,13 @@ public class LocalImage {
 
     public void setUri(String uri) {
         this.uri = uri;
+    }
+
+    public int getAvgPixel() {
+        return avgPixel;
+    }
+
+    public void setAvgPixel(int avgPixel) {
+        this.avgPixel = avgPixel;
     }
 }
