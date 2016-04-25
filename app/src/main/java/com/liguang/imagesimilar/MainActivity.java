@@ -3,6 +3,7 @@ package com.liguang.imagesimilar;
 import android.annotation.TargetApi;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,6 +15,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.ArraySet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,7 +26,6 @@ import android.widget.TextView;
 
 import com.tonicartos.superslim.LayoutManager;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean mAreMarginsFixed;
 
+    private static final int MAX_WIDTH = 1024;//最大宽
+    private static final int MAX_HEIGHT = 1280;//最大高
 
     Handler mHandler=new Handler(){
          @Override
@@ -143,14 +146,20 @@ public class MainActivity extends AppCompatActivity {
         msg.what=PROGRESS_START;
         mHandler.sendMessage(msg);
         int analyze_num=0;
+
+        DisplayMetrics outMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(outMetrics);
+
         while (c.moveToNext()) {
             String path = c.getString(c.getColumnIndex(MediaStore.MediaColumns.DATA));
             long size = c.getLong(c.getColumnIndex(MediaStore.MediaColumns.SIZE));
             int ringtoneID = c.getInt(c
                     .getColumnIndex(MediaStore.MediaColumns._ID));
             try {
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri
-                        .parse(uri.toString() +"/"+ ringtoneID));
+                Bitmap bitmap=loadBitmapFromFile(path, outMetrics.widthPixels,
+                        outMetrics.heightPixels);
+//                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri
+//                        .parse(uri.toString() +"/"+ ringtoneID));
                 if (null!=bitmap){
                     imageList.add(new LocalImage(ImageHelper.produceFingerPrint(bitmap), path,size,(uri.toString() +"/"+ ringtoneID)));
                 }
@@ -165,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                     System.gc();
                 }
                 analyze_num++;
-                Log.e(TAG, "加载图片" + path);
+                Log.e(TAG, "加载图片" + path+"  大小:"+size);
                 int  progress = (int) ((double) analyze_num / count) * 100;
                 mPb.setProgress(progress);
                 Message msg2 = mHandler.obtainMessage();//同 new Message();
@@ -173,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 msg2.what = PROGRESS_PROGRESS;
                 mHandler.sendMessage(msg2);
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -239,4 +248,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
+    private Bitmap loadBitmapFromFile(String path, int screenWidth, int screenHeight) {
+        // 不能超过最大高与最大宽，避免尺寸太大而OOM
+        final int width = Math.min(screenWidth, MAX_WIDTH);
+        final int height = Math.min(screenHeight, MAX_HEIGHT);
+        if (width <= 0 || height <= 0) {
+            return null;
+        }
+
+        // First decode with inJustDecodeBounds=true to check dimensions
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, options);
+
+        if (options.outHeight == -1 || options.outWidth == -1) {
+            return null;
+        }
+
+        // Calculate inSampleSize，尽量接近width与height
+        int inSampleSize = Math.max((int) (0.5f + (float) options.outHeight / (float) height),
+                (int) (0.5f + (float) options.outWidth / (float) width));
+        inSampleSize += 1; // 强制 +1，防止在某些手机上的OOM
+        options.inSampleSize = Math.max(inSampleSize, 1);
+
+
+        // Decode bitmap with inSampleSize set
+        options.inJustDecodeBounds = false;
+
+        // DO NOT ZOOM HERE
+        // caller must zoom the bitmap to expected size, it might has its own
+        // aspect / size requirement
+        return BitmapFactory.decodeFile(path, options);
+    }
 }
